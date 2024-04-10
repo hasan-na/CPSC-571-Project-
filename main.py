@@ -51,7 +51,7 @@ def main():
     history = model.fit(X_train, y_train, epochs=1, batch_size=32, validation_data=(X_val, y_val), verbose=2)
     
     # Make predictions
-    predictions = model.predict(X_test)
+    predictions = predict_toxicity(model, w2v_model, 'You are a terrible person')
     print(predictions)
 
     # Evaluate the model
@@ -65,6 +65,23 @@ def main():
     # # Save the Word2Vec model
     # w2v_model.save(os.path.join('models', 'w2v_model.h5'))
 
+def predict_toxicity(model, w2v_model, text):
+    # Tokenize the text
+    tokenized_text = word_tokenize(text)
+    # Convert words to their corresponding word vectors
+    vectorized_text = [w2v_model.wv[word] for word in tokenized_text]
+    # Pad the sequence so it's the same length as the training data
+    max_sequence_length = 100
+    vectorized_text = pad_sequences([vectorized_text], maxlen=max_sequence_length)
+    # Make a prediction
+    # Use the model to predict the categories
+    probabilities = model.predict(vectorized_text)[0]
+    
+    # Convert the probabilities to category labels
+    categories = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']  
+    labels = [categories[i] for i, p in enumerate(probabilities) if p > 0.5]
+    
+    return labels
 
 if __name__ == '__main__':
     main()
