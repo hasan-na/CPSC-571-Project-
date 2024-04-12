@@ -14,11 +14,10 @@ pip install -r requirements.txt
 
 This should download all of the necessary dependencies required to run the program 
 
-After the dependencies have been downloaded you can run the code by putting the following prompts into the command line
+After the dependencies have been downloaded you should put the terminal into UTF8 encoding by using the following command 
 
 chcp 65001
+
+After the terminal is UTF8 encoded you can run the program by using the following command 
+
 python main.py
-
-Use chcp 65001 to convert the terminal to UTF8 encoding and then you can run the code by using python main.py
-
-
