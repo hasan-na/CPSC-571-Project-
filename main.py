@@ -13,7 +13,7 @@ from tensorflow.keras.preprocessing.text import Tokenizer # type: ignore
 def main():
 
     #download the punkt package from nltk
-    #nltk.download('punkt')
+    nltk.download('punkt')
 
     # Load data
     data = pd.read_csv(os.path.join('data', 'train.csv'))
