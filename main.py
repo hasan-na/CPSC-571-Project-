@@ -11,7 +11,6 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences # type: ignore
 from tensorflow.keras.models import Sequential # type: ignore
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense # type: ignore
 
-
 def main():
    
     # Load data
@@ -60,31 +59,30 @@ def main():
     loss, accuracy = model.evaluate(vectorized_test_texts, test_labels)
     print('Test Loss:', loss)
     print('Test Accuracy:', accuracy)
-    
+
     # Make predictions
-    prediction = predict_toxicity(model, w2v_model, 'I hate you!')
-    print(prediction)
+    prompt = 'You are a terrible person.'
+    prediction = predict_toxicity(model, w2v_model, prompt)
 
-    # Save the model
-    model.save(os.path.join('models', 'model.keras'))
-    # Save the Word2Vec model
-    w2v_model.save(os.path.join('models', 'w2v_model.keras'))
-
-
-
+    if prediction:
+        categories = ', '.join(prediction)
+        print(f'The prompt ({prompt}) contains {categories} which has been filtered out.')
+    else:
+        print('The prompt is not toxic.')
+   
+    
 def predict_toxicity(model, w2v_model, text):
     # Tokenize the text
     tokenized_text = tokenize(text)
     # Convert words to their corresponding word vectors
-    vectorized_text = [w2v_model.wv[word] for word in tokenized_text]
+    vectorized_text = [w2v_model.wv[word] for word in tokenized_text if word in w2v_model.wv]
     # Pad the sequence so it's the same length as the training data
     max_sequence_length = 100
     vectorized_text = pad_sequences([vectorized_text], maxlen=max_sequence_length)
     # Make a prediction
     probabilities = model.predict(vectorized_text)[0]
-    print(probabilities)
-    # Convert the DataFrame to a list
-    labels_list = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+    # Make labels
+    labels_list = ['toxicity', 'severe_toxicity', 'obscene language', 'threats', 'insults', 'identity_hate']
     # Convert the probabilities to category labels
     categories = [labels_list[i] for i, p in enumerate(probabilities) if p > 0.15]
     
@@ -102,6 +100,7 @@ def tokenize(text):
     # Remove words that are less than 2 characters long
     tokens = [token for token in tokens if len(token) > 2]
     return tokens
+    
 
 if __name__ == '__main__':
     main()
