@@ -6,7 +6,6 @@ import tensorflow as tf
 import pandas as pd #type: ignore
 import numpy as np #type: ignore
 from gensim.models import Word2Vec
-from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.sequence import pad_sequences # type: ignore
 from tensorflow.keras.models import Sequential # type: ignore
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense # type: ignore
@@ -44,7 +43,7 @@ def main():
     # Compile the model
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     # Train the model
-    model.fit(vectorized_texts, labels, epochs=1, batch_size=32, verbose=1)
+    model.fit(vectorized_texts, labels, epochs=10, batch_size=32, verbose=1)
 
     # Tokenize the test text
     test_texts = test_data['comment_text']
@@ -60,16 +59,17 @@ def main():
     print('Test Loss:', loss)
     print('Test Accuracy:', accuracy)
 
+    prompt = ''
     # Make predictions
-    prompt = 'You are a terrible person.'
-    prediction = predict_toxicity(model, w2v_model, prompt)
-
-    if prediction:
-        categories = ', '.join(prediction)
-        print(f'The prompt ({prompt}) contains {categories} which has been filtered out.')
-    else:
-        print('The prompt is not toxic.')
-   
+    while(prompt != 'exit'):
+        prompt = input('Enter a prompt (type "exit" to quit): ')
+        if prompt != 'exit':
+            prediction = predict_toxicity(model, w2v_model, prompt)
+            if prediction:
+                categories = ', '.join(prediction)
+                print(f'The prompt ({prompt}) contains {categories} which has been filtered out.')
+            else:
+                print('The prompt is not toxic.')
     
 def predict_toxicity(model, w2v_model, text):
     # Tokenize the text
@@ -81,10 +81,11 @@ def predict_toxicity(model, w2v_model, text):
     vectorized_text = pad_sequences([vectorized_text], maxlen=max_sequence_length)
     # Make a prediction
     probabilities = model.predict(vectorized_text)[0]
+    print(probabilities)
     # Make labels
     labels_list = ['toxicity', 'severe_toxicity', 'obscene language', 'threats', 'insults', 'identity_hate']
     # Convert the probabilities to category labels
-    categories = [labels_list[i] for i, p in enumerate(probabilities) if p > 0.15]
+    categories = [labels_list[i] for i, p in enumerate(probabilities) if p > 0.4]
     
     return categories
 
