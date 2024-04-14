@@ -53,7 +53,7 @@ def main():
 
     # Make predictions on the test data
     test_probabilities = model.predict(vectorized_texts_val)
-    test_predictions = (test_probabilities > 0.4).astype(int)
+    test_predictions = (test_probabilities > 0.35).astype(int)
 
     # Calculate precision, recall, and F1 score for each class
     precision = precision_score(labels_val, test_predictions, average=None)
