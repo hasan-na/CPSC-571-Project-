@@ -6,6 +6,8 @@ import tensorflow as tf
 import pandas as pd #type: ignore
 import numpy as np #type: ignore
 from gensim.models import Word2Vec
+from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.sequence import pad_sequences # type: ignore
 from tensorflow.keras.models import Sequential # type: ignore
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense # type: ignore
@@ -14,8 +16,6 @@ def main():
    
     # Load data
     train_data = pd.read_csv(os.path.join('data', 'train.csv'))
-    test_data = pd.read_csv(os.path.join('data', 'test.csv'))
-    test_data_labels = pd.read_csv(os.path.join('data', 'test_labels.csv'))
     texts = train_data['comment_text']
     labels = train_data[train_data.columns[2:]] 
 
@@ -31,6 +31,7 @@ def main():
     # Pad the sequences so they're all the same length
     max_sequence_length = 100  
     vectorized_texts = pad_sequences(vectorized_texts, maxlen=max_sequence_length)
+    vectorized_texts_train, vectorized_texts_val, labels_train, labels_val = train_test_split(vectorized_texts, labels, test_size=0.2, random_state=42)
 
     # Create a neural network
     model = Sequential()
@@ -43,51 +44,29 @@ def main():
     # Compile the model
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     # Train the model
-    model.fit(vectorized_texts, labels, epochs=10, batch_size=32, verbose=1)
+    model.fit(vectorized_texts_train, labels_train, epochs=10, batch_size=32)
 
-    # Tokenize the test text
-    test_texts = test_data['comment_text']
-    tokenized_test_texts = [tokenize(text) for text in test_texts]
-    # Convert words to their corresponding word vectors
-    vectorized_test_texts = [[w2v_model.wv[word] for word in text if word in w2v_model.wv] for text in tokenized_test_texts]
-    # Pad the sequences so they're all the same length
-    vectorized_test_texts = pad_sequences(vectorized_test_texts, maxlen=max_sequence_length)
-    # Get the test labels
-    test_labels = test_data_labels[test_data_labels.columns[1:]]
-    # Evaluate the model on the test data
-    loss, accuracy = model.evaluate(vectorized_test_texts, test_labels)
+    loss, accuracy = model.evaluate(vectorized_texts_val, labels_val)
+    # Calculate precision, recall, and F1 score for each class
     print('Test Loss:', loss)
     print('Test Accuracy:', accuracy)
 
-    prompt = ''
-    # Make predictions
-    while(prompt != 'exit'):
-        prompt = input('Enter a prompt (type "exit" to quit): ')
-        if prompt != 'exit':
-            prediction = predict_toxicity(model, w2v_model, prompt)
-            if prediction:
-                categories = ', '.join(prediction)
-                print(f'The prompt ({prompt}) contains {categories} which has been filtered out.')
-            else:
-                print('The prompt is not toxic.')
-    
-def predict_toxicity(model, w2v_model, text):
-    # Tokenize the text
-    tokenized_text = tokenize(text)
-    # Convert words to their corresponding word vectors
-    vectorized_text = [w2v_model.wv[word] for word in tokenized_text if word in w2v_model.wv]
-    # Pad the sequence so it's the same length as the training data
-    max_sequence_length = 100
-    vectorized_text = pad_sequences([vectorized_text], maxlen=max_sequence_length)
-    # Make a prediction
-    probabilities = model.predict(vectorized_text)[0]
-    print(probabilities)
-    # Make labels
-    labels_list = ['toxicity', 'severe_toxicity', 'obscene language', 'threats', 'insults', 'identity_hate']
-    # Convert the probabilities to category labels
-    categories = [labels_list[i] for i, p in enumerate(probabilities) if p > 0.4]
-    
-    return categories
+    # Make predictions on the test data
+    test_probabilities = model.predict(vectorized_texts_val)
+    test_predictions = (test_probabilities > 0.4).astype(int)
+
+    # Calculate precision, recall, and F1 score for each class
+    precision = precision_score(labels_val, test_predictions, average=None)
+    recall = recall_score(labels_val, test_predictions, average=None)
+    f1 = f1_score(labels_val, test_predictions, average=None)
+
+    # Print the evaluation results
+    labels_list = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+    for i, label in enumerate(labels_list):
+        print(f'Class: {label}')
+        print(f'  Precision: {precision[i]}')
+        print(f'  Recall: {recall[i]}')
+        print(f'  F1 Score: {f1[i]}')
 
 def tokenize(text):
     # Convert the text to lowercase
